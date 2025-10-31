@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="id">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Enkripsi & Dekripsi Sederhana</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: #f8fafc;
+            color: #111
+        }
+
+        .card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: auto
+        }
+
+        textarea,
+        input,
+        button {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px
+        }
+
+        button {
+            background: #2563eb;
+            color: #fff;
+            border: none;
+            cursor: pointer
+        }
+
+        button:hover {
+            background: #1e40af
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h2>Enkripsi & Dekripsi Kalimat</h2>
+        <p>Masukkan kata kunci dan kalimat yang ingin dienkripsi atau didekripsi.</p>
+
+        <label for="key">Kata Kunci:</label>
+        <input type="text" id="key" placeholder="Masukkan kata kunci..." />
+
+        <label for="text">Kalimat:</label>
+        <textarea id="text" placeholder="Masukkan teks di sini..."></textarea>
+
+        <button id="encryptBtn">Enkripsi</button>
+        <button id="decryptBtn">Dekripsi</button>
+
+        <label for="result">Hasil:</label>
+        <textarea id="result" readonly placeholder="Hasil akan muncul di sini..."></textarea>
+    </div>
+
+    <script>
+        // Fungsi enkripsi sederhana (AES-GCM)
+        async function encryptText(text, password) {
+            const enc = new TextEncoder();
+            const salt = crypto.getRandomValues(new Uint8Array(16));
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+            const key = await crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['encrypt']
+            );
+            const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(text));
+            const buffer = new Uint8Array([...salt, ...iv, ...new Uint8Array(encrypted)]);
+            return btoa(String.fromCharCode(...buffer));
+        }
+
+        // Fungsi dekripsi sederhana (AES-GCM)
+        async function decryptText(base64, password) {
+            const data = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+            const salt = data.slice(0, 16);
+            const iv = data.slice(16, 28);
+            const encrypted = data.slice(28);
+            const enc = new TextEncoder();
+            const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+            const key = await crypto.subtle.deriveKey(
+                { name: 'PBKDF2', salt, iterations: 100000, hash: 'SHA-256' },
+                keyMaterial,
+                { name: 'AES-GCM', length: 256 },
+                false,
+                ['decrypt']
+            );
+            const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encrypted);
+            return new TextDecoder().decode(decrypted);
+        }
+
+        document.getElementById('encryptBtn').addEventListener('click', async () => {
+            const text = document.getElementById('text').value;
+            const key = document.getElementById('key').value;
+            if (!text || !key) { alert('Masukkan teks dan kata kunci.'); return; }
+            try {
+                const encrypted = await encryptText(text, key);
+                document.getElementById('result').value = encrypted;
+            } catch (e) { alert('Gagal enkripsi: ' + e.message); }
+        });
+
+        document.getElementById('decryptBtn').addEventListener('click', async () => {
+            const text = document.getElementById('text').value;
+            const key = document.getElementById('key').value;
+            if (!text || !key) { alert('Masukkan ciphertext dan kata kunci.'); return; }
+            try {
+                const decrypted = await decryptText(text, key);
+                document.getElementById('result').value = decrypted;
+            } catch (e) { alert('Gagal dekripsi: ' + e.message); }
+        });
+    </script>
+</body>
+
+</html>
