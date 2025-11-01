@@ -59,8 +59,51 @@
             min-width: 100px;
         }
 
-        h2 {
-            margin-top: 0;
+        /* Popup */
+        .popup {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .popup textarea {
+            width: 100%;
+            height: 150px;
+            margin-top: 10px;
+            font-size: 16px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            resize: none;
+        }
+
+        .popup button {
+            margin-top: 10px;
+        }
+
+        .close-btn {
+            background: #ef4444;
+        }
+
+        .close-btn:hover {
+            background: #b91c1c;
         }
     </style>
 </head>
@@ -84,11 +127,17 @@
             <button id="encryptBtn">🔒 Enkripsi</button>
             <button id="decryptBtn">🔓 Dekripsi</button>
         </div>
+    </div>
 
-        <label for="result">Hasil:</label>
-        <textarea id="result" readonly placeholder="Hasil akan muncul di sini..."></textarea>
-        <div class="btn-group">
-            <button id="copyBtn">Copy</button>
+    <!-- Popup -->
+    <div id="popup" class="popup">
+        <div class="popup-content">
+            <h3>Hasil</h3>
+            <textarea id="popupResult" readonly></textarea>
+            <div class="btn-group">
+                <button id="copyBtn">Copy</button>
+                <button class="close-btn" id="closePopup">Tutup</button>
+            </div>
         </div>
     </div>
 
@@ -130,13 +179,25 @@
             return new TextDecoder().decode(decrypted);
         }
 
+        // Menampilkan popup
+        function showPopup(text) {
+            const popup = document.getElementById('popup');
+            document.getElementById('popupResult').value = text;
+            popup.style.display = 'flex';
+        }
+
+        // Menutup popup
+        document.getElementById('closePopup').addEventListener('click', () => {
+            document.getElementById('popup').style.display = 'none';
+        });
+
         document.getElementById('encryptBtn').addEventListener('click', async () => {
             const text = document.getElementById('text').value;
             const key = document.getElementById('key').value;
             if (!text || !key) { alert('Masukkan teks dan kata kunci.'); return; }
             try {
                 const encrypted = await encryptText(text, key);
-                document.getElementById('result').value = encrypted;
+                showPopup(encrypted);
             } catch (e) { alert('Gagal enkripsi: ' + e.message); }
         });
 
@@ -146,7 +207,7 @@
             if (!text || !key) { alert('Masukkan ciphertext dan kata kunci.'); return; }
             try {
                 const decrypted = await decryptText(text, key);
-                document.getElementById('result').value = decrypted;
+                showPopup(decrypted);
             } catch (e) { alert('Gagal dekripsi: ' + e.message); }
         });
 
@@ -160,9 +221,9 @@
             }
         });
 
-        // Tombol Copy
+        // Tombol Copy di popup
         document.getElementById('copyBtn').addEventListener('click', async () => {
-            const result = document.getElementById('result').value;
+            const result = document.getElementById('popupResult').value;
             if (!result) { alert('Tidak ada hasil untuk disalin.'); return; }
             try {
                 await navigator.clipboard.writeText(result);
